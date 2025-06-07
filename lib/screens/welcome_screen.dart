@@ -10,9 +10,8 @@ class WelcomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Imagen arriba del texto
             Image.asset(
-              'assets/images/fondo.png', // Asegúrate que esté en esa ruta
+              'assets/images/fondo.png', 
               width: 150,
               height: 150,
               fit: BoxFit.contain,
