@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final redColor = Colors.redAccent;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -10,9 +11,8 @@ class WelcomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Imagen arriba del texto
             Image.asset(
-              'assets/images/fondo.png', // Asegúrate que esté en esa ruta
+              'assets/images/fondo.png', 
               width: 150,
               height: 150,
               fit: BoxFit.contain,
@@ -22,6 +22,7 @@ class WelcomeScreen extends StatelessWidget {
               'Bienvenido a SoArlFlix',
               style: TextStyle(
                 fontSize: 28,
+                color: redColor,
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
@@ -37,6 +38,7 @@ class WelcomeScreen extends StatelessWidget {
             SizedBox(height: 40),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
+                backgroundColor: redColor,
               ),
               child: Text('Iniciar Sesión'),
               onPressed: () => Navigator.pushNamed(context, '/login'),

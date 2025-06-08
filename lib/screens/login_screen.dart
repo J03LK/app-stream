@@ -12,12 +12,21 @@ class LoginScreen extends StatelessWidget {
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: emailController, decoration: InputDecoration(labelText: "Correo")),
-            TextField(controller: passController, decoration: InputDecoration(labelText: "Contraseña"), obscureText: true),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(labelText: "Correo"),
+            ),
+            TextField(
+              controller: passController,
+              decoration: InputDecoration(labelText: "Contraseña"),
+              obscureText: true,
+            ),
             SizedBox(height: 20),
             ElevatedButton(
               child: Text("Entrar"),
-              onPressed: () => Navigator.pushNamed(context, '/home'),
+              onPressed: () {
+                Navigator.pushReplacementNamed(context, '/categories');
+              },
             ),
           ],
         ),

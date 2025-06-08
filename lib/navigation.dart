@@ -5,6 +5,7 @@ import 'package:app_stream/screens/player_screem.dart';
 import 'package:app_stream/screens/register_screen.dart';
 import 'package:app_stream/screens/welcome_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:app_stream/screens/categories_screen.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
   '/': (context) => WelcomeScreen(),
@@ -13,4 +14,5 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/home': (context) => HomeScreen(),
   '/detail': (context) => MovieDetailScreen(),
   '/player': (context) => PlayerScreen(),
+  '/categories': (context) => CategoriesScreen(), 
 };
