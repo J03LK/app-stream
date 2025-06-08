@@ -1,6 +1,17 @@
 import 'package:flutter/material.dart';
 
 class MovieDetailScreen extends StatelessWidget {
+  final String titulo;
+  final String descripcion;
+  final String imagen;
+
+  // Constructor que recibe los datos específicos de la película
+  const MovieDetailScreen({
+    required this.titulo,
+    required this.descripcion,
+    required this.imagen,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -9,11 +20,14 @@ class MovieDetailScreen extends StatelessWidget {
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
-            Placeholder(fallbackHeight: 200),
+            // Muestra la imagen (si está disponible)
+            imagen.isNotEmpty
+                ? Image.network(imagen, height: 200, fit: BoxFit.cover)
+                : Placeholder(fallbackHeight: 200),
             SizedBox(height: 16),
-            Text("Título de la Película", style: TextStyle(fontSize: 24)),
+            Text(titulo, style: TextStyle(fontSize: 24)),
             SizedBox(height: 10),
-            Text("Descripción larga de la película. Aquí se detallan los actores, la sinopsis y más."),
+            Text(descripcion),
             SizedBox(height: 20),
             ElevatedButton(
               child: Text("Ver Ahora"),
