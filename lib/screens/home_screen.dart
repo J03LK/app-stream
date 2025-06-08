@@ -18,6 +18,10 @@ final Map<String, List<Map<String, String>>> categoriasPeliculas = {
       "imagen": "",
     },
   ],
+  "Terror": [
+    {"titulo": "El Exorcista", "descripcion": "Sombra maligna", "imagen": ""},
+    {"titulo": "La Sombra", "descripcion": "Sombra oscuro", "imagen": ""},
+  ]
 };
 
 class HomeScreen extends StatelessWidget {
