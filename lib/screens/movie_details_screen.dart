@@ -41,6 +41,7 @@ class MovieDetailScreen extends StatelessWidget {
               ],
             ),
           ),
+
         ),
       ),
     );
