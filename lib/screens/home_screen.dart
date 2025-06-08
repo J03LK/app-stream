@@ -1,22 +1,21 @@
-import 'package:app_stream/screens/movie_details_screen.dart';
 import 'package:flutter/material.dart';
 
 class HomeScreen extends StatelessWidget {
   final List<Map<String, String>> peliculas = [
     {
-      "titulo": "El Padrino",
-      "descripcion": "Drama criminal de la mafia italiana.",
-      "imagen": "url_imagen1.jpg",
+      "titulo": "Winnie the Pooh: Sangre y Miel",
+      "descripcion": ".",
+      "imagen": "",
     },
     {
       "titulo": "Titanic",
       "descripcion": "Romance épico en el barco hundido.",
-      "imagen": "url_imagen2.jpg",
+      "imagen": "",
     },
     {
       "titulo": "Jurassic Park",
       "descripcion": "Aventura con dinosaurios clonados.",
-      "imagen": "url_imagen3.jpg",
+      "imagen": "",
     },
   ];
 
@@ -31,15 +30,15 @@ class HomeScreen extends StatelessWidget {
             title: Text(peliculas[index]['titulo']!),
             subtitle: Text(peliculas[index]['descripcion']!),
             onTap: () {
-              Navigator.push(
+              Navigator.pushNamed(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => MovieDetailScreen(
-                    titulo: peliculas[index]['titulo']!,
-                    descripcion: peliculas[index]['descripcion']!,
-                    imagen: peliculas[index]['imagen']!,
-                  ),
-                ),
+                '/detail', // Ruta nombrada (no requiere cambios en la configuración de rutas)
+                arguments: {
+                  // Datos específicos de la película
+                  'titulo': peliculas[index]['titulo']!,
+                  'descripcion': peliculas[index]['descripcion']!,
+                  'imagen': peliculas[index]['imagen']!,
+                },
               );
             },
           );
