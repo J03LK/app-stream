@@ -1,48 +1,45 @@
+import 'package:app_stream/screens/category_movies.dart';
 import 'package:flutter/material.dart';
 
-class HomeScreen extends StatelessWidget {
-  final List<Map<String, String>> peliculas = [
+final Map<String, List<Map<String, String>>> categoriasPeliculas = {
+  "Acción": [
+    {"titulo": "John Wick", "descripcion": "Venganza implacable", "imagen": ""},
     {
-      "titulo": "Winnie the Pooh: Sangre y Miel",
-      "descripcion": ".",
+      "titulo": "Mad Max",
+      "descripcion": "Carreteras postapocalípticas",
       "imagen": "",
     },
+  ],
+  "Romance": [
+    {"titulo": "Titanic", "descripcion": "Amor en alta mar", "imagen": ""},
     {
-      "titulo": "Titanic",
-      "descripcion": "Romance épico en el barco hundido.",
+      "titulo": "El Diario de Noa",
+      "descripcion": "Historia de amor eterno",
       "imagen": "",
     },
-    {
-      "titulo": "Jurassic Park",
-      "descripcion": "Aventura con dinosaurios clonados.",
-      "imagen": "",
-    },
-  ];
+  ],
+};
 
+class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Catálogo de Películas")),
-      body: ListView.builder(
-        itemCount: peliculas.length,
-        itemBuilder: (context, index) {
+      appBar: AppBar(title: Text("Categorías")),
+      body: ListView(
+        children: categoriasPeliculas.keys.map((categoria) {
           return ListTile(
-            title: Text(peliculas[index]['titulo']!),
-            subtitle: Text(peliculas[index]['descripcion']!),
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                '/detail', // Ruta nombrada (no requiere cambios en la configuración de rutas)
-                arguments: {
-                  // Datos específicos de la película
-                  'titulo': peliculas[index]['titulo']!,
-                  'descripcion': peliculas[index]['descripcion']!,
-                  'imagen': peliculas[index]['imagen']!,
-                },
-              );
-            },
+            title: Text(categoria),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CategoryScreen(
+                  categoria: categoria,
+                  peliculas: categoriasPeliculas[categoria]!,
+                ),
+              ),
+            ),
           );
-        },
+        }).toList(),
       ),
     );
   }
