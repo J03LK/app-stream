@@ -10,7 +10,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
-    final String? categoria = ModalRoute.of(context)!.settings.arguments as String?;
+    final String? categoria =
+        ModalRoute.of(context)!.settings.arguments as String?;
 
     final List<Pelicula> peliculas = obtenerPeliculas();
 
@@ -43,6 +44,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     'titulo': pelicula.titulo,
                     'descripcion': pelicula.descripcion,
                     'imagen': pelicula.imagen,
+                    'trailer': pelicula.trailer, 
                   },
                 );
               },

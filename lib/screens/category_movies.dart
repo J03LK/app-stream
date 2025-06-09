@@ -20,7 +20,7 @@ class CategoryScreen extends StatelessWidget {
             onTap: () => Navigator.pushNamed(
               context,
               '/detail',
-              arguments: pelicula, // Pasa todos los datos de la película
+              arguments: pelicula, 
             ),
           );
         },
