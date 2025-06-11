@@ -4,7 +4,7 @@ class CategoryScreen extends StatelessWidget {
   final String categoria;
   final List<Map<String, String>> peliculas;
 
-  const CategoryScreen({required this.categoria, required this.peliculas});
+  const CategoryScreen({super.key, required this.categoria, required this.peliculas});
 
   @override
   Widget build(BuildContext context) {

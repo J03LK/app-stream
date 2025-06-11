@@ -5,6 +5,8 @@ class RegisterScreen extends StatelessWidget {
   final emailController = TextEditingController();
   final passController = TextEditingController();
 
+  RegisterScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final redColor = Colors.redAccent;

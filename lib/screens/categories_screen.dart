@@ -4,6 +4,8 @@ import '../data/peliculas_data.dart';
 import '../models/pelicula.dart';
 
 class CategoriesScreen extends StatefulWidget {
+  const CategoriesScreen({super.key});
+
   @override
   _CategoriesScreenState createState() => _CategoriesScreenState();
 }

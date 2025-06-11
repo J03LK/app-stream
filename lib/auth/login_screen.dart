@@ -4,6 +4,8 @@ class LoginScreen extends StatelessWidget {
   final emailController = TextEditingController();
   final passController = TextEditingController();
 
+  LoginScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     final redColor = Colors.redAccent;

@@ -4,6 +4,8 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../models/pelicula.dart';
 
 class MovieDetailScreen extends StatefulWidget {
+  const MovieDetailScreen({super.key});
+
   @override
   _MovieDetailScreenState createState() => _MovieDetailScreenState();
 }
@@ -117,7 +119,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
         return Dialog(
           insetPadding: EdgeInsets.all(16),
-          child: Container(
+          child: SizedBox(
             width: screenWidth * 0.9,
             child: AspectRatio(
               aspectRatio: 16 / 9,

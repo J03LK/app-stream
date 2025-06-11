@@ -3,6 +3,8 @@ import '../models/pelicula.dart';
 import '../data/peliculas_data.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }

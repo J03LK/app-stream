@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/pelicula.dart';
 
 class FavoritesScreen extends StatefulWidget {
+  const FavoritesScreen({super.key});
+
   @override
   _FavoritesScreenState createState() => _FavoritesScreenState();
 }

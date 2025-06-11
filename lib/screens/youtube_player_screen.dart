@@ -4,7 +4,7 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 class YouTubePlayerScreen extends StatefulWidget {
   final String videoUrl;
 
-  YouTubePlayerScreen({required this.videoUrl});
+  const YouTubePlayerScreen({super.key, required this.videoUrl});
 
   @override
   _YouTubePlayerScreenState createState() => _YouTubePlayerScreenState();
