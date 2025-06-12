@@ -23,13 +23,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // 1. Crear usuario en Firebase Auth
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // 2. Guardar datos adicionales en Realtime Database
       if (userCredential.user != null) {
         await FirebaseDatabase.instance.ref('users').child(userCredential.user!.uid).set({
           'username': _usernameController.text.trim(),
