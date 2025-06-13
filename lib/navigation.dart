@@ -1,4 +1,5 @@
 import 'package:app_stream/screens/favorites_screen.dart';
+import 'package:app_stream/screens/history_screen.dart';
 import 'package:app_stream/screens/home_screen.dart';
 import 'package:app_stream/auth/login_screen.dart';
 import 'package:app_stream/screens/movie_details_screen.dart';
@@ -21,4 +22,5 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/profile': (context) => ProfileScreen(),
   '/search': (context) => SearchScreen(),
   '/favorites': (context) => FavoritesScreen(), 
+  '/history': (context) => const HistoryScreen(),
 };

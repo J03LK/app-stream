@@ -99,10 +99,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             ),
           );
 
-          // Navegar a categorías después de un breve delay
-          await Future.delayed(const Duration(milliseconds: 1500));
+          // Navegar a home después de un breve delay
+          await Future.delayed(const Duration(milliseconds: 1000));
           if (!mounted) return;
-          Navigator.pushReplacementNamed(context, '/categories');
+          Navigator.pushReplacementNamed(context, '/home');
         } else {
           _showError('No se pudo encontrar la información del usuario');
         }
@@ -253,10 +253,10 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 60),
             child: Column(
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 60),
                 
                 // Logo con efecto neón
                 _buildGlowingContainer(
@@ -287,16 +287,16 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   ),
                 ),
                 
-                const SizedBox(height: 30),
+                const SizedBox(height: 40),
                 
                 // Título con efecto neón
                 Text(
                   'CINE STREAM',
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 36,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: 3,
+                    letterSpacing: 4,
                     shadows: [
                       Shadow(color: neonBlue, blurRadius: 15),
                       Shadow(color: neonPink, blurRadius: 25),
@@ -304,18 +304,18 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   ),
                 ),
                 
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 
                 Text(
                   'Inicia sesión para continuar',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     color: Colors.white70,
                     shadows: [Shadow(color: neonGreen, blurRadius: 5)],
                   ),
                 ),
                 
-                const SizedBox(height: 50),
+                const SizedBox(height: 60),
                 
                 // Campo de email
                 _buildNeonTextField(
@@ -326,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   keyboardType: TextInputType.emailAddress,
                 ),
                 
-                const SizedBox(height: 25),
+                const SizedBox(height: 30),
                 
                 // Campo de contraseña
                 _buildNeonTextField(
@@ -348,106 +348,78 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   ),
                 ),
                 
-                const SizedBox(height: 40),
+                const SizedBox(height: 50),
                 
-                // Botón de login con efecto neón
-                _buildGlowingContainer(
-                  glowColor: neonPink,
-                  glowRadius: 25,
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          side: BorderSide(color: neonPink, width: 2),
-                        ),
+                // Botón de login estilo welcome
+                Container(
+                  width: double.infinity,
+                  height: 55,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: neonPink.withOpacity(0.8),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: neonPink.withOpacity(0.3),
+                        blurRadius: 20,
+                        spreadRadius: 0,
                       ),
-                      onPressed: _isLoading ? null : _loginUser,
-                      child: Container(
-                        width: double.infinity,
-                        height: double.infinity,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [neonPink.withOpacity(0.8), neonPurple.withOpacity(0.8)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.circular(28),
-                        ),
-                        child: Center(
-                          child: _isLoading
-                              ? SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.login, size: 24),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      "INICIAR SESIÓN",
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
+                    ],
+                  ),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _loginUser,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(13),
                       ),
                     ),
+                    child: _isLoading
+                        ? SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: neonPink,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : Text(
+                            'Iniciar Sesión',
+                            style: TextStyle(
+                              color: neonPink,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                   ),
                 ),
                 
                 const SizedBox(height: 30),
                 
-                // Botón de registro
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: neonBlue.withOpacity(0.5), width: 1),
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/register');
-                    },
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.person_add, color: neonBlue, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          "¿No tienes cuenta? Regístrate",
-                          style: TextStyle(
-                            color: neonBlue,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            shadows: [Shadow(color: neonBlue, blurRadius: 5)],
-                          ),
-                        ),
-                      ],
+                // Texto simple para registro
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(context, '/register');
+                  },
+                  child: Text(
+                    '¿No tienes aún cuenta? Regístrate aquí',
+                    style: TextStyle(
+                      color: neonBlue.withOpacity(0.8),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      decoration: TextDecoration.underline,
+                      decorationColor: neonBlue.withOpacity(0.6),
                     ),
                   ),
                 ),
                 
-                const SizedBox(height: 20),
+                const SizedBox(height: 40),
               ],
             ),
           ),

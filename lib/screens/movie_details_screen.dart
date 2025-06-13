@@ -87,10 +87,22 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
             _userAge = userData['age'];
             _username = userData['username'];
           });
+          
+          // Verificar si puede ver la película después de cargar la edad
+          _checkIfCanWatch();
         }
       }
     } catch (e) {
       print('Error al cargar datos del usuario: $e');
+    }
+  }
+
+  void _checkIfCanWatch() {
+    if (_userAge != null && pelicula != null) {
+      setState(() {
+        _canWatch = pelicula.esApropiadaParaEdad(_userAge!);
+      });
+      print('Edad del usuario: $_userAge, Edad mínima película: ${pelicula.edadMinima}, Puede ver: $_canWatch');
     }
   }
 
@@ -106,18 +118,17 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
       imagen: args['imagen']!,
       trailer: args['trailer']!,
       categoria: args['categoria'] ?? 'Sin categoría',
-      edadMinima: _getEdadMinimaFromTitle(args['titulo']!), // Obtener edad desde datos
+      edadMinima: _getEdadMinimaFromTitle(args['titulo']!),
     );
     
-    // Verificar si puede ver la película
-    _canWatch = _userAge != null ? pelicula.esApropiadaParaEdad(_userAge!) : pelicula.edadMinima <= 0;
-    
+    // Verificar si puede ver la película después de crear el objeto
+    _checkIfCanWatch();
     _checkIfFavorite();
   }
 
   int _getEdadMinimaFromTitle(String titulo) {
     // Mapeo básico - en producción esto vendría de la base de datos
-    final edadesPorTitulo = {
+    final edadesPorTitulo = <String, int>{
       'Winnie the Pooh: Sangre y Miel': 18,
       'Titanic': 13,
       'Jurassic World': 13,
@@ -383,7 +394,34 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
       _showAgeRestrictionDialog();
       return;
     }
+    
+    // Guardar en historial antes de ver la película
+    _saveToHistory();
+    
     Navigator.pushNamed(context, '/player');
+  }
+
+  Future<void> _saveToHistory() async {
+    if (_currentUser == null) return;
+
+    try {
+      final historyRef = FirebaseDatabase.instance.ref('usuarios_historial');
+      final movieKey = _sanitizeKey(pelicula.titulo);
+
+      await historyRef.child(_currentUser!.uid).child(movieKey).set({
+        'titulo': pelicula.titulo,
+        'descripcion': pelicula.descripcion,
+        'imagen': pelicula.imagen,
+        'trailer': pelicula.trailer,
+        'categoria': pelicula.categoria,
+        'edadMinima': pelicula.edadMinima,
+        'fecha_vista': ServerValue.timestamp,
+      });
+
+      print('Movie saved to history: ${pelicula.titulo}');
+    } catch (e) {
+      print('Error al guardar en historial: $e');
+    }
   }
 
   @override
@@ -595,60 +633,53 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                   const SizedBox(height: 32),
                   
                   // Botón principal
-                  _buildGlowingContainer(
-                    glowColor: _canWatch ? neonGreen : Colors.red,
-                    glowRadius: 25,
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            side: BorderSide(
+                  Container(
+                    width: double.infinity,
+                    height: 55,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(
+                        color: _canWatch ? neonGreen.withOpacity(0.8) : Colors.red.withOpacity(0.8),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _canWatch ? neonGreen.withOpacity(0.3) : Colors.red.withOpacity(0.3),
+                          blurRadius: 20,
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: _watchMovie,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _canWatch ? Icons.play_arrow : Icons.lock,
+                            size: 24,
+                            color: _canWatch ? neonGreen : Colors.red,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            _canWatch ? 'VER AHORA' : 'CONTENIDO RESTRINGIDO',
+                            style: TextStyle(
                               color: _canWatch ? neonGreen : Colors.red,
-                              width: 2,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                        ),
-                        onPressed: _watchMovie,
-                        child: Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: _canWatch 
-                                  ? [neonGreen.withOpacity(0.8), neonBlue.withOpacity(0.8)]
-                                  : [Colors.red.withOpacity(0.8), Colors.red[800]!.withOpacity(0.8)],
-                              begin: Alignment.centerLeft,
-                              end: Alignment.centerRight,
-                            ),
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          child: Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _canWatch ? Icons.play_arrow : Icons.lock,
-                                  size: 28,
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  _canWatch ? 'VER AHORA' : 'CONTENIDO RESTRINGIDO',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
                     ),
                   ),

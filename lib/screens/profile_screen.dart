@@ -1,192 +1,307 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Mi Perfil"),
-        backgroundColor: Colors.black87,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false, // Quita la flecha de regreso
-      ),
-      backgroundColor: Colors.black,
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen>
+    with TickerProviderStateMixin {
+  // Datos del usuario
+  String? _username;
+  String? _email;
+  int? _userAge;
+  String? _favoriteGenre;
+  bool _isLoading = true;
+
+  // Animaciones
+  late AnimationController _glowController;
+  late AnimationController _pulseController;
+  late AnimationController _avatarController;
+  late Animation<double> _glowAnimation;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _avatarAnimation;
+
+  // Colores neón
+  final Color neonPink = const Color(0xFFFF0080);
+  final Color neonBlue = const Color(0xFF00FFFF);
+  final Color neonGreen = const Color(0xFF00FF41);
+  final Color neonPurple = const Color(0xFF8A2BE2);
+  final Color neonYellow = const Color(0xFFFFFF00);
+  final Color neonOrange = const Color(0xFFFF4500);
+
+  @override
+  void initState() {
+    super.initState();
+    _initAnimations();
+    _loadUserData();
+  }
+
+  void _initAnimations() {
+    _glowController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+    _avatarController = AnimationController(
+      duration: const Duration(milliseconds: 2000),
+      vsync: this,
+    );
+
+    _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    _avatarAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _avatarController, curve: Curves.elasticOut),
+    );
+
+    _glowController.repeat(reverse: true);
+    _pulseController.repeat(reverse: true);
+    _avatarController.forward();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        setState(() {
+          _email = currentUser.email;
+        });
+
+        if (currentUser.displayName != null) {
+          final snapshot = await FirebaseDatabase.instance
+              .ref('users')
+              .child(currentUser.displayName!)
+              .get();
+
+          if (snapshot.exists) {
+            final userData = Map<String, dynamic>.from(snapshot.value as Map);
+            setState(() {
+              _username = userData['username'];
+              _userAge = userData['age'];
+              _favoriteGenre = userData['favoriteGenre'];
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error al cargar datos del usuario: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Widget _buildGlowingContainer({
+    required Widget child,
+    required Color glowColor,
+    double glowRadius = 20,
+  }) {
+    return AnimatedBuilder(
+      animation: _glowAnimation,
+      builder: (context, _) {
+        return Container(
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: glowColor.withOpacity(0.3 * _glowAnimation.value),
+                blurRadius: glowRadius * _glowAnimation.value,
+                spreadRadius: 2,
+              ),
+            ],
+          ),
+          child: child,
+        );
+      },
+    );
+  }
+
+  Widget _buildUserHeader() {
+    return _buildGlowingContainer(
+      glowColor: neonPink,
+      glowRadius: 30,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.black.withOpacity(0.8),
+              Colors.grey[900]!.withOpacity(0.9),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: neonPink.withOpacity(0.5), width: 2),
+        ),
         child: Column(
           children: [
-            // Sección del avatar y nombre
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.grey[900],
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 8,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  // Avatar
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.redAccent,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.redAccent.withOpacity(0.3),
-                          blurRadius: 20,
-                          offset: Offset(0, 8),
+            // Avatar animado
+            AnimatedBuilder(
+              animation: _avatarAnimation,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: _avatarAnimation.value,
+                  child: AnimatedBuilder(
+                    animation: _pulseAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _pulseAnimation.value,
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              colors: [neonPink, neonPurple, neonBlue],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: neonPink.withOpacity(0.5),
+                                blurRadius: 30,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: Container(
+                            margin: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [neonBlue, neonGreen],
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.person,
+                              size: 60,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Icon(Icons.person, size: 50, color: Colors.white),
+                      );
+                    },
                   ),
-                  SizedBox(height: 16),
-                  // Nombre del usuario
-                  Text(
-                    "Usuario Demo", // Aquí puedes poner el nombre del usuario logueado
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    "usuario@email.com", // Email del usuario
-                    style: TextStyle(color: Colors.grey[400], fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 24),
-
-            // Opciones del perfil
-            _buildProfileOption(
-              icon: Icons.favorite,
-              title: "Mis Favoritas",
-              subtitle: "Películas que me gustan",
-              onTap: () {
-                // Navegar a pantalla de favoritas
-                Navigator.pushNamed(context, '/favorites');
+                );
               },
             ),
 
-            SizedBox(height: 12),
+            const SizedBox(height: 20),
 
-            _buildProfileOption(
-              icon: Icons.history,
-              title: "Historial",
-              subtitle: "Películas vistas recientemente",
-              onTap: () {
-                // Navegar a historial
-                Navigator.pushNamed(context, '/history');
-              },
-            ),
-
-            SizedBox(height: 12),
-
-            _buildProfileOption(
-              icon: Icons.settings,
-              title: "Configuración",
-              subtitle: "Ajustes de la aplicación",
-              onTap: () {
-                // Navegar a configuración
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
-
-            SizedBox(height: 12),
-
-            _buildProfileOption(
-              icon: Icons.help_outline,
-              title: "Ayuda y Soporte",
-              subtitle: "¿Necesitas ayuda?",
-              onTap: () {
-                // Navegar a ayuda
-                _showHelpDialog(context);
-              },
-            ),
-
-            SizedBox(height: 24),
-
-            // Botón de cerrar sesión
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  _showLogoutDialog(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.logout),
-                    SizedBox(width: 8),
-                    Text(
-                      "Cerrar Sesión",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+            // Nombre del usuario
+            if (_username != null)
+              Text(
+                _username!,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(color: neonPink, blurRadius: 15),
+                    Shadow(color: neonBlue, blurRadius: 25),
                   ],
                 ),
+              )
+            else
+              Container(
+                width: 150,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
+
+            const SizedBox(height: 8),
+
+            // Email
+            if (_email != null)
+              Text(
+                _email!,
+                style: TextStyle(
+                  color: Colors.grey[300],
+                  fontSize: 16,
+                  shadows: [Shadow(color: neonBlue, blurRadius: 5)],
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Información adicional
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildInfoChip(
+                  icon: Icons.cake,
+                  label: 'Edad',
+                  value: _userAge?.toString() ?? '--',
+                  color: neonYellow,
+                ),
+                _buildInfoChip(
+                  icon: Icons.favorite,
+                  label: 'Género',
+                  value: _favoriteGenre ?? '--',
+                  color: neonGreen,
+                ),
+              ],
             ),
           ],
         ),
       ),
-      // Barra de navegación inferior
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.black87,
-        selectedItemColor: Colors.redAccent,
-        unselectedItemColor: Colors.grey,
-        currentIndex: 3, // Perfil está seleccionado
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/categories');
-              break;
-            case 1:
-              Navigator.pushReplacementNamed(context, '/search');
-              break;
-            case 2:
-              Navigator.pushReplacementNamed(context, '/home');
-              break;
-            case 3:
-              // Ya estamos en perfil
-              break;
-          }
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.category),
-            label: 'Categorías',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Buscar'),
-          BottomNavigationBarItem(icon: Icon(Icons.movie), label: 'Películas'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
-        ],
+    );
+  }
+
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return _buildGlowingContainer(
+      glowColor: color,
+      glowRadius: 10,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color, width: 1),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -195,46 +310,127 @@ class ProfileScreen extends StatelessWidget {
     required IconData icon,
     required String title,
     required String subtitle,
+    required Color color,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: EdgeInsets.all(16),
-        leading: Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.redAccent.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
+    return _buildGlowingContainer(
+      glowColor: color,
+      glowRadius: 15,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Colors.black.withOpacity(0.8),
+              Colors.grey[900]!.withOpacity(0.9),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
-          child: Icon(icon, color: Colors.redAccent, size: 24),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.5), width: 1),
         ),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
+        child: ListTile(
+          contentPadding: const EdgeInsets.all(16),
+          leading: _buildGlowingContainer(
+            glowColor: color,
+            glowRadius: 8,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [color.withOpacity(0.8), color.withOpacity(0.6)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color, width: 1),
+              ),
+              child: Icon(icon, color: Colors.white, size: 24),
+            ),
           ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              shadows: [Shadow(color: color, blurRadius: 5)],
+            ),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+          trailing: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withOpacity(0.5)),
+            ),
+            child: Icon(Icons.arrow_forward_ios, color: color, size: 16),
+          ),
+          onTap: onTap,
         ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(color: Colors.grey[400], fontSize: 14),
-        ),
-        trailing: Icon(
-          Icons.arrow_forward_ios,
-          color: Colors.grey[600],
-          size: 16,
-        ),
-        onTap: onTap,
       ),
     );
+  }
+
+  Widget _buildLogoutButton() {
+    return Container(
+      width: double.infinity,
+      height: 55,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: Colors.red.withOpacity(0.8),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.3),
+            blurRadius: 20,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () => _showLogoutDialog(context),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(13),
+          ),
+        ),
+        child: Text(
+          'Cerrar Sesión',
+          style: TextStyle(
+            color: Colors.red,
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    try {
+      await FirebaseAuth.instance.signOut();
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al cerrar sesión: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showLogoutDialog(BuildContext context) {
@@ -243,16 +439,26 @@ class ProfileScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: Text("Cerrar Sesión", style: TextStyle(color: Colors.white)),
-          content: Text(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.logout, color: Colors.red, size: 28),
+              const SizedBox(width: 8),
+              const Text(
+                "Cerrar Sesión",
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+          content: const Text(
             "¿Estás seguro de que quieres cerrar sesión?",
-            style: TextStyle(color: Colors.grey[300]),
+            style: TextStyle(color: Colors.grey),
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: Text(
                 "Cancelar",
                 style: TextStyle(color: Colors.grey[400]),
@@ -261,16 +467,11 @@ class ProfileScreen extends StatelessWidget {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                // Navegar a login y limpiar el stack
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/login',
-                  (route) => false,
-                );
+                _logout();
               },
-              child: Text(
+              child: const Text(
                 "Cerrar Sesión",
-                style: TextStyle(color: Colors.redAccent),
+                style: TextStyle(color: Colors.red),
               ),
             ),
           ],
@@ -285,35 +486,211 @@ class ProfileScreen extends StatelessWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           backgroundColor: Colors.grey[900],
-          title: Text("Ayuda y Soporte", style: TextStyle(color: Colors.white)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.help_outline, color: neonBlue, size: 28),
+              const SizedBox(width: 8),
+              const Text(
+                "Ayuda y Soporte",
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 "¿Necesitas ayuda con la aplicación?",
-                style: TextStyle(color: Colors.grey[300]),
+                style: TextStyle(color: Colors.grey),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Text(
-                "• Explora películas por categorías\n• Busca tus películas favoritas\n• Guarda películas en favoritos\n• Ve trailers de las películas",
+                "🎬 Explora películas por categorías\n⭐ Busca tus películas favoritas\n❤️ Guarda películas en favoritos\n📺 Ve trailers de las películas\n🔒 Control parental por edad",
                 style: TextStyle(color: Colors.grey[400]),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                "Entendido",
-                style: TextStyle(color: Colors.redAccent),
-              ),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text("Entendido", style: TextStyle(color: neonBlue)),
             ),
           ],
         );
       },
+    );
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    _pulseController.dispose();
+    _avatarController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(
+          "Mi Perfil",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            shadows: [Shadow(color: neonPink, blurRadius: 10)],
+          ),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.black, Colors.grey[900]!],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+      body: _isLoading
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 60,
+                    height: 60,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(neonPink),
+                      strokeWidth: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Cargando perfil...',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      shadows: [Shadow(color: neonPink, blurRadius: 10)],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Header del usuario
+                  _buildUserHeader(),
+
+                  const SizedBox(height: 24),
+
+                  // Opciones del perfil
+                  _buildProfileOption(
+                    icon: Icons.favorite,
+                    title: "Mis Favoritas",
+                    subtitle: "Películas que me gustan",
+                    color: neonPink,
+                    onTap: () => Navigator.pushNamed(context, '/favorites'),
+                  ),
+
+                  _buildProfileOption(
+                    icon: Icons.history,
+                    title: "Historial",
+                    subtitle: "Películas vistas recientemente",
+                    color: neonBlue,
+                    onTap: () => Navigator.pushNamed(context, '/history'),
+                  ),
+
+                  _buildProfileOption(
+                    icon: Icons.settings,
+                    title: "Configuración",
+                    subtitle: "Ajustes de la aplicación",
+                    color: neonGreen,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Función en desarrollo'),
+                          backgroundColor: Colors.orange,
+                        ),
+                      );
+                    },
+                  ),
+
+                  _buildProfileOption(
+                    icon: Icons.help_outline,
+                    title: "Ayuda y Soporte",
+                    subtitle: "¿Necesitas ayuda?",
+                    color: neonYellow,
+                    onTap: () => _showHelpDialog(context),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Botón de cerrar sesión
+                  _buildLogoutButton(),
+                ],
+              ),
+            ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.black, Colors.grey[900]!],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: neonPink.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.transparent,
+          selectedItemColor: neonPink,
+          unselectedItemColor: Colors.grey[600],
+          currentIndex: 3,
+          elevation: 0,
+          onTap: (index) {
+            switch (index) {
+              case 0:
+                Navigator.pushReplacementNamed(context, '/categories');
+                break;
+              case 1:
+                Navigator.pushReplacementNamed(context, '/search');
+                break;
+              case 2:
+                Navigator.pushReplacementNamed(context, '/home');
+                break;
+              case 3:
+                break;
+            }
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.category),
+              label: 'Categorías',
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Buscar'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.movie),
+              label: 'Películas',
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+          ],
+        ),
+      ),
     );
   }
 }
