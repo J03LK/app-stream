@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -19,6 +22,8 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
   bool _isLoading = false;
   bool _obscurePassword = true;
   String _selectedGenre = 'Acción';
+  File? _selectedImage;
+  bool _isUploadingImage = false;
   
   // Animaciones para efectos neón
   late AnimationController _glowController;
@@ -61,6 +66,185 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
     _glowController.repeat(reverse: true);
   }
 
+  // Función para mostrar opciones de imagen
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Seleccionar foto de perfil',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  shadows: [Shadow(color: neonPink, blurRadius: 10)],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Opción de cámara
+              _buildImageOption(
+                icon: Icons.camera_alt,
+                title: 'Tomar foto',
+                subtitle: 'Usar cámara',
+                color: neonBlue,
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Opción de galería
+              _buildImageOption(
+                icon: Icons.photo_library,
+                title: 'Galería',
+                subtitle: 'Seleccionar de galería',
+                color: neonGreen,
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              
+              if (_selectedImage != null) ...[
+                const SizedBox(height: 12),
+                // Opción para remover imagen
+                _buildImageOption(
+                  icon: Icons.delete,
+                  title: 'Remover foto',
+                  subtitle: 'Usar avatar por defecto',
+                  color: Colors.red,
+                  onTap: () {
+                    Navigator.pop(context);
+                    setState(() {
+                      _selectedImage = null;
+                    });
+                  },
+                ),
+              ],
+              
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: color, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Función para seleccionar imagen
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 70,
+      );
+      
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      _showError('Error al seleccionar imagen: $e');
+    }
+  }
+
+  // Función para subir imagen a Firebase Storage
+  Future<String?> _uploadProfileImage(String username) async {
+    if (_selectedImage == null) return null;
+    
+    try {
+      setState(() => _isUploadingImage = true);
+      
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images')
+          .child('$username.jpg');
+      
+      final uploadTask = storageRef.putFile(_selectedImage!);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      return downloadUrl;
+    } catch (e) {
+      _showError('Error al subir imagen: $e');
+      return null;
+    } finally {
+      setState(() => _isUploadingImage = false);
+    }
+  }
+
   // Verificar si el username ya existe
   Future<bool> _isUsernameAvailable(String username) async {
     try {
@@ -96,6 +280,12 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
       );
 
       if (userCredential.user != null) {
+        // Subir imagen de perfil si existe
+        String? profileImageUrl;
+        if (_selectedImage != null) {
+          profileImageUrl = await _uploadProfileImage(_usernameController.text.trim());
+        }
+
         // Guardar datos usando el username como ID único
         await FirebaseDatabase.instance
             .ref('users')
@@ -106,6 +296,7 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
           'age': int.parse(_ageController.text.trim()),
           'favoriteGenre': _selectedGenre,
           'uid': userCredential.user!.uid,
+          'profileImageUrl': profileImageUrl,
           'createdAt': ServerValue.timestamp,
         });
 
@@ -191,6 +382,111 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
           child: child,
         );
       },
+    );
+  }
+
+  Widget _buildProfileImagePicker() {
+    return _buildGlowingContainer(
+      glowColor: neonPink,
+      glowRadius: 25,
+      child: GestureDetector(
+        onTap: _showImagePickerOptions,
+        child: Container(
+          width: 120,
+          height: 120,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [neonPink, neonPurple],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: neonPink.withOpacity(0.5),
+                blurRadius: 15,
+                spreadRadius: 3,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 3),
+                ),
+                child: ClipOval(
+                  child: _selectedImage != null
+                      ? Image.file(
+                          _selectedImage!,
+                          fit: BoxFit.cover,
+                          width: 120,
+                          height: 120,
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [neonBlue, neonGreen],
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+              
+              // Botón de editar
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: neonGreen,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: neonGreen.withOpacity(0.5),
+                        blurRadius: 8,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+              
+              // Indicador de carga
+              if (_isUploadingImage)
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(0.5),
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -449,32 +745,18 @@ class _RegisterScreenState extends State<RegisterScreen> with TickerProviderStat
                 children: [
                   const SizedBox(height: 20),
                   
-                  // Icono con efecto neón
-                  _buildGlowingContainer(
-                    glowColor: neonPink,
-                    glowRadius: 25,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [neonPink, neonPurple],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: neonPink.withOpacity(0.5),
-                            blurRadius: 15,
-                            spreadRadius: 3,
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.person_add_alt_1_rounded,
-                        size: 60,
-                        color: Colors.white,
-                      ),
+                  // Selector de imagen de perfil
+                  _buildProfileImagePicker(),
+                  
+                  const SizedBox(height: 10),
+                  
+                  // Texto de ayuda para la imagen
+                  Text(
+                    'Toca para añadir foto de perfil',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                      shadows: [Shadow(color: neonPink, blurRadius: 5)],
                     ),
                   ),
                   

@@ -1,17 +1,67 @@
-// Agregar estos métodos a tu data_service.dart existente
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/pelicula.dart';
-import '../data/peliculas_data.dart';
+import '../data/peliculas_data.dart' as peliculas_data;
 
 class DataService {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // ... tus métodos existentes ...
+  // MÉTODOS BASE PARA PELÍCULAS
 
-  // NUEVOS MÉTODOS PARA FILTRADO POR EDAD:
+  /// Obtener todas las películas
+  List<Pelicula> obtenerPeliculas() {
+    return peliculas_data.obtenerPeliculas(); // Usando la función de tu archivo peliculas_data.dart
+  }
+
+  /// Obtener películas por categoría
+  List<Pelicula> obtenerPeliculasPorCategoria(String categoria) {
+    return obtenerPeliculas()
+        .where((pelicula) => pelicula.categoria.toLowerCase() == categoria.toLowerCase())
+        .toList();
+  }
+
+  /// Obtener películas filtradas por edad mínima
+  List<Pelicula> obtenerPeliculasPorEdad(int edadUsuario) {
+    return obtenerPeliculas()
+        .where((pelicula) => pelicula.esApropiadaParaEdad(edadUsuario))
+        .toList();
+  }
+
+  /// Obtener películas por categoría y edad
+  List<Pelicula> obtenerPeliculasPorCategoriaYEdad(String categoria, int edadUsuario) {
+    return obtenerPeliculas()
+        .where((pelicula) => 
+            pelicula.categoria.toLowerCase() == categoria.toLowerCase() &&
+            pelicula.esApropiadaParaEdad(edadUsuario))
+        .toList();
+  }
+
+  /// Obtener películas recomendadas por género favorito y edad
+  List<Pelicula> obtenerPeliculasRecomendadas(String generoFavorito, int edadUsuario) {
+    // Filtrar por género favorito y edad apropiada
+    final peliculasDelGenero = obtenerPeliculas()
+        .where((pelicula) => 
+            pelicula.categoria.toLowerCase() == generoFavorito.toLowerCase() &&
+            pelicula.esApropiadaParaEdad(edadUsuario))
+        .toList();
+    
+    // Si no hay suficientes películas del género favorito, agregar otras apropiadas para la edad
+    if (peliculasDelGenero.length < 10) {
+      final otrasApropriadas = obtenerPeliculas()
+          .where((pelicula) => 
+              pelicula.categoria.toLowerCase() != generoFavorito.toLowerCase() &&
+              pelicula.esApropiadaParaEdad(edadUsuario))
+          .toList();
+      
+      peliculasDelGenero.addAll(otrasApropriadas);
+    }
+    
+    // Limitar a máximo 20 recomendaciones y eliminar duplicados
+    return peliculasDelGenero.toSet().toList().take(20).toList();
+  }
+
+  // MÉTODOS PARA GESTIÓN DE USUARIOS Y EDAD
 
   /// Obtener la edad del usuario actual
   Future<int?> obtenerEdadUsuarioActual() async {
@@ -110,6 +160,8 @@ class DataService {
     }
   }
 
+  // MÉTODOS PARA GESTIÓN DE PERFIL DE USUARIO
+
   /// Obtener información del usuario actual (edad, género favorito, etc.)
   Future<Map<String, dynamic>?> obtenerPerfilUsuarioActual() async {
     try {
@@ -147,6 +199,68 @@ class DataService {
     } catch (e) {
       print('Error al actualizar género favorito: $e');
       return false;
+    }
+  }
+
+  /// Actualizar la edad del usuario
+  Future<bool> actualizarEdadUsuario(int nuevaEdad) async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser?.displayName != null) {
+        await _database
+            .child('users')
+            .child(currentUser!.displayName!)
+            .child('age')
+            .set(nuevaEdad);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error al actualizar edad del usuario: $e');
+      return false;
+    }
+  }
+
+  // MÉTODOS ADICIONALES ÚTILES
+
+  /// Buscar películas por título
+  List<Pelicula> buscarPeliculasPorTitulo(String titulo) {
+    return obtenerPeliculas()
+        .where((pelicula) => 
+            pelicula.titulo.toLowerCase().contains(titulo.toLowerCase()))
+        .toList();
+  }
+
+  /// Buscar películas por título filtrado por edad del usuario
+  Future<List<Pelicula>> buscarPeliculasPorTituloFiltrado(String titulo) async {
+    try {
+      final edadUsuario = await obtenerEdadUsuarioActual();
+      final peliculasEncontradas = buscarPeliculasPorTitulo(titulo);
+      
+      if (edadUsuario == null) {
+        return peliculasEncontradas.where((p) => p.edadMinima <= 0).toList();
+      }
+      
+      return peliculasEncontradas
+          .where((pelicula) => pelicula.esApropiadaParaEdad(edadUsuario))
+          .toList();
+    } catch (e) {
+      print('Error al buscar películas por título filtrado: $e');
+      return [];
+    }
+  }
+
+  /// Obtener categorías disponibles para la edad del usuario
+  Future<List<String>> obtenerCategoriasDisponibles() async {
+    try {
+      final peliculasDisponibles = await obtenerPeliculasFiltradasPorEdad();
+      return peliculasDisponibles
+          .map((pelicula) => pelicula.categoria)
+          .toSet()
+          .toList();
+    } catch (e) {
+      print('Error al obtener categorías disponibles: $e');
+      return [];
     }
   }
 }

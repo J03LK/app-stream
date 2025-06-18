@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -16,7 +19,9 @@ class _ProfileScreenState extends State<ProfileScreen>
   String? _email;
   int? _userAge;
   String? _favoriteGenre;
+  String? _profileImageUrl;
   bool _isLoading = true;
+  bool _isUpdatingImage = false;
 
   // Animaciones
   late AnimationController _glowController;
@@ -90,6 +95,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               _username = userData['username'];
               _userAge = userData['age'];
               _favoriteGenre = userData['favoriteGenre'];
+              _profileImageUrl = userData['profileImageUrl'];
             });
           }
         }
@@ -100,6 +106,262 @@ class _ProfileScreenState extends State<ProfileScreen>
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  // Función para mostrar opciones de imagen
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.grey[900],
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Cambiar foto de perfil',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  shadows: [Shadow(color: neonPink, blurRadius: 10)],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Opción de cámara
+              _buildImageOption(
+                icon: Icons.camera_alt,
+                title: 'Tomar foto',
+                subtitle: 'Usar cámara',
+                color: neonBlue,
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              
+              const SizedBox(height: 12),
+              
+              // Opción de galería
+              _buildImageOption(
+                icon: Icons.photo_library,
+                title: 'Galería',
+                subtitle: 'Seleccionar de galería',
+                color: neonGreen,
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              
+              if (_profileImageUrl != null) ...[
+                const SizedBox(height: 12),
+                // Opción para remover imagen
+                _buildImageOption(
+                  icon: Icons.delete,
+                  title: 'Remover foto',
+                  subtitle: 'Usar avatar por defecto',
+                  color: Colors.red,
+                  onTap: () {
+                    Navigator.pop(context);
+                    _removeProfileImage();
+                  },
+                ),
+              ],
+              
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildImageOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: color, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Función para seleccionar imagen
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 70,
+      );
+      
+      if (image != null) {
+        await _uploadProfileImage(File(image.path));
+      }
+    } catch (e) {
+      _showError('Error al seleccionar imagen: $e');
+    }
+  }
+
+  // Función para subir imagen a Firebase Storage
+  Future<void> _uploadProfileImage(File imageFile) async {
+    if (_username == null) return;
+    
+    try {
+      setState(() => _isUpdatingImage = true);
+      
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images')
+          .child('$_username.jpg');
+      
+      final uploadTask = storageRef.putFile(imageFile);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      // Actualizar la URL en la base de datos
+      await FirebaseDatabase.instance
+          .ref('users')
+          .child(_username!)
+          .update({'profileImageUrl': downloadUrl});
+      
+      setState(() {
+        _profileImageUrl = downloadUrl;
+      });
+      
+      _showSuccess('Foto de perfil actualizada');
+    } catch (e) {
+      _showError('Error al subir imagen: $e');
+    } finally {
+      setState(() => _isUpdatingImage = false);
+    }
+  }
+
+  // Función para remover imagen de perfil
+  Future<void> _removeProfileImage() async {
+    if (_username == null) return;
+    
+    try {
+      setState(() => _isUpdatingImage = true);
+      
+      // Eliminar imagen de Storage si existe
+      if (_profileImageUrl != null) {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('profile_images')
+            .child('$_username.jpg');
+        await storageRef.delete();
+      }
+      
+      // Actualizar la base de datos
+      await FirebaseDatabase.instance
+          .ref('users')
+          .child(_username!)
+          .update({'profileImageUrl': null});
+      
+      setState(() {
+        _profileImageUrl = null;
+      });
+      
+      _showSuccess('Foto de perfil eliminada');
+    } catch (e) {
+      _showError('Error al eliminar imagen: $e');
+    } finally {
+      setState(() => _isUpdatingImage = false);
+    }
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: Colors.red[700],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  void _showSuccess(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(child: Text(message)),
+            ],
+          ),
+          backgroundColor: neonGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
     }
   }
 
@@ -148,7 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen>
         ),
         child: Column(
           children: [
-            // Avatar animado
+            // Avatar animado con imagen
             AnimatedBuilder(
               animation: _avatarAnimation,
               builder: (context, child) {
@@ -159,37 +421,137 @@ class _ProfileScreenState extends State<ProfileScreen>
                     builder: (context, child) {
                       return Transform.scale(
                         scale: _pulseAnimation.value,
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: LinearGradient(
-                              colors: [neonPink, neonPurple, neonBlue],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: neonPink.withOpacity(0.5),
-                                blurRadius: 30,
-                                spreadRadius: 5,
+                        child: GestureDetector(
+                          onTap: _showImagePickerOptions,
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    colors: [neonPink, neonPurple, neonBlue],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: neonPink.withOpacity(0.5),
+                                      blurRadius: 30,
+                                      spreadRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                                child: Container(
+                                  margin: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                  ),
+                                  child: ClipOval(
+                                    child: _profileImageUrl != null
+                                        ? Image.network(
+                                            _profileImageUrl!,
+                                            fit: BoxFit.cover,
+                                            width: 120,
+                                            height: 120,
+                                            loadingBuilder: (context, child, loadingProgress) {
+                                              if (loadingProgress == null) return child;
+                                              return Container(
+                                                width: 120,
+                                                height: 120,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [neonBlue, neonGreen],
+                                                  ),
+                                                ),
+                                                child: Center(
+                                                  child: CircularProgressIndicator(
+                                                    color: Colors.white,
+                                                    strokeWidth: 2,
+                                                    value: loadingProgress.expectedTotalBytes != null
+                                                        ? loadingProgress.cumulativeBytesLoaded /
+                                                            loadingProgress.expectedTotalBytes!
+                                                        : null,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            errorBuilder: (context, error, stackTrace) {
+                                              return Container(
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [neonBlue, neonGreen],
+                                                  ),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  size: 60,
+                                                  color: Colors.white,
+                                                ),
+                                              );
+                                            },
+                                          )
+                                        : Container(
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [neonBlue, neonGreen],
+                                              ),
+                                            ),
+                                            child: const Icon(
+                                              Icons.person,
+                                              size: 60,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                  ),
+                                ),
                               ),
+                              
+                              // Botón de editar
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: neonGreen,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: neonGreen.withOpacity(0.5),
+                                        blurRadius: 8,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                              
+                              // Indicador de carga
+                              if (_isUpdatingImage)
+                                Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.black.withOpacity(0.5),
+                                  ),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
                             ],
-                          ),
-                          child: Container(
-                            margin: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: LinearGradient(
-                                colors: [neonBlue, neonGreen],
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 60,
-                              color: Colors.white,
-                            ),
                           ),
                         ),
                       );
@@ -509,7 +871,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
               const SizedBox(height: 16),
               Text(
-                "🎬 Explora películas por categorías\n⭐ Busca tus películas favoritas\n❤️ Guarda películas en favoritos\n📺 Ve trailers de las películas\n🔒 Control parental por edad",
+                "🎬 Explora películas por categorías\n⭐ Busca tus películas favoritas\n❤️ Guarda películas en favoritos\n📺 Ve trailers de las películas\n🔒 Control parental por edad\n📸 Personaliza tu foto de perfil",
                 style: TextStyle(color: Colors.grey[400]),
               ),
             ],

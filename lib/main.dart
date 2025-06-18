@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'navigation.dart';
+import 'splash_screen.dart'; // Importa tu splash screen
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -18,8 +19,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Streamzy',
       theme: ThemeData.dark(),
-      initialRoute: '/',
-      routes: appRoutes,
+      // Cambia la ruta inicial al splash screen
+      initialRoute: '/splash',
+      routes: {
+        '/splash': (context) => const SplashScreen(),
+        // Mantén todas tus rutas existentes
+        ...appRoutes,
+      },
+      debugShowCheckedModeBanner: false,
     );
   }
 }

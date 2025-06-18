@@ -11,13 +11,14 @@ class MovieDetailScreen extends StatefulWidget {
   _MovieDetailScreenState createState() => _MovieDetailScreenState();
 }
 
-class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProviderStateMixin {
+class _MovieDetailScreenState extends State<MovieDetailScreen>
+    with TickerProviderStateMixin {
   late Pelicula pelicula;
   bool isFavorite = false;
   bool _canWatch = true;
   int? _userAge;
   String? _username;
-  
+
   late DatabaseReference _favoritesRef;
   late User? _currentUser;
 
@@ -58,7 +59,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _glowAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
@@ -68,7 +69,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
     _heartAnimation = Tween<double>(begin: 1.0, end: 1.3).animate(
       CurvedAnimation(parent: _heartController, curve: Curves.elasticOut),
     );
-    
+
     _glowController.repeat(reverse: true);
     _pulseController.repeat(reverse: true);
   }
@@ -80,14 +81,14 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
             .ref('users')
             .child(_currentUser!.displayName!)
             .get();
-        
+
         if (snapshot.exists) {
           final userData = Map<String, dynamic>.from(snapshot.value as Map);
           setState(() {
             _userAge = userData['age'];
             _username = userData['username'];
           });
-          
+
           // Verificar si puede ver la película después de cargar la edad
           _checkIfCanWatch();
         }
@@ -102,15 +103,18 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
       setState(() {
         _canWatch = pelicula.esApropiadaParaEdad(_userAge!);
       });
-      print('Edad del usuario: $_userAge, Edad mínima película: ${pelicula.edadMinima}, Puede ver: $_canWatch');
+      print(
+        'Edad del usuario: $_userAge, Edad mínima película: ${pelicula.edadMinima}, Puede ver: $_canWatch',
+      );
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final args = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
-    
+    final args =
+        ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+
     // Crear el objeto Pelicula desde los argumentos
     pelicula = Pelicula(
       titulo: args['titulo']!,
@@ -120,7 +124,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
       categoria: args['categoria'] ?? 'Sin categoría',
       edadMinima: _getEdadMinimaFromTitle(args['titulo']!),
     );
-    
+
     // Verificar si puede ver la película después de crear el objeto
     _checkIfCanWatch();
     _checkIfFavorite();
@@ -180,7 +184,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
 
   Future<void> _toggleFavorite() async {
     if (_currentUser == null) {
-      _showMessage('Debes iniciar sesión para guardar favoritos', Colors.orange);
+      _showMessage(
+        'Debes iniciar sesión para guardar favoritos',
+        Colors.orange,
+      );
       return;
     }
 
@@ -209,7 +216,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
         _showMessage('"${pelicula.titulo}" agregada a favoritos ❤️', neonPink);
       } else {
         await userFavoritesRef.child(movieKey).remove();
-        _showMessage('"${pelicula.titulo}" removida de favoritos 💔', Colors.grey);
+        _showMessage(
+          '"${pelicula.titulo}" removida de favoritos 💔',
+          Colors.grey,
+        );
       }
     } catch (e) {
       setState(() {
@@ -291,10 +301,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                     const SizedBox(height: 8),
                     Text(
                       'Esta película requiere ${pelicula.edadMinima}+ años',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
                     ),
                     Text(
                       'Tu edad actual: $_userAge años',
@@ -372,7 +379,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
           children: [
             Icon(Icons.warning, color: Colors.red, size: 30),
             const SizedBox(width: 8),
-            const Text('Contenido Restringido', style: TextStyle(color: Colors.white)),
+            const Text(
+              'Contenido Restringido',
+              style: TextStyle(color: Colors.white),
+            ),
           ],
         ),
         content: Text(
@@ -389,16 +399,30 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
     );
   }
 
+  // En tu MovieDetailScreen, reemplaza el método _watchMovie con este:
+
   void _watchMovie() {
     if (!_canWatch) {
       _showAgeRestrictionDialog();
       return;
     }
-    
+
     // Guardar en historial antes de ver la película
     _saveToHistory();
-    
-    Navigator.pushNamed(context, '/player');
+
+    // Navegar al reproductor pasando todos los datos de la película
+    Navigator.pushNamed(
+      context,
+      '/player',
+      arguments: {
+        'titulo': pelicula.titulo,
+        'descripcion': pelicula.descripcion,
+        'imagen': pelicula.imagen,
+        'trailer': pelicula.trailer,
+        'categoria': pelicula.categoria,
+        'edadMinima': pelicula.edadMinima,
+      },
+    );
   }
 
   Future<void> _saveToHistory() async {
@@ -452,7 +476,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[800],
-                        child: const Icon(Icons.movie, color: Colors.white, size: 100),
+                        child: const Icon(
+                          Icons.movie,
+                          color: Colors.white,
+                          size: 100,
+                        ),
                       );
                     },
                   ),
@@ -501,7 +529,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                                     color: Colors.white,
                                   ),
                                 ),
-                                onPressed: () => _showTrailerDialog(context, pelicula.trailer),
+                                onPressed: () => _showTrailerDialog(
+                                  context,
+                                  pelicula.trailer,
+                                ),
                               ),
                             );
                           },
@@ -513,7 +544,10 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                     top: 100,
                     right: 16,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: pelicula.colorClasificacion,
                         borderRadius: BorderRadius.circular(12),
@@ -547,7 +581,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                       icon: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: isFavorite ? neonPink.withOpacity(0.2) : Colors.black.withOpacity(0.3),
+                          color: isFavorite
+                              ? neonPink.withOpacity(0.2)
+                              : Colors.black.withOpacity(0.3),
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: isFavorite ? neonPink : Colors.white,
@@ -580,19 +616,23 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                       color: Colors.white,
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(color: neonBlue, blurRadius: 15),
-                      ],
+                      shadows: [Shadow(color: neonBlue, blurRadius: 15)],
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Categoría con chip neón
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [neonPurple.withOpacity(0.3), neonPink.withOpacity(0.3)],
+                        colors: [
+                          neonPurple.withOpacity(0.3),
+                          neonPink.withOpacity(0.3),
+                        ],
                       ),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: neonPurple, width: 1),
@@ -606,9 +646,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 20),
-                  
+
                   // Descripción
                   Text(
                     'Sinopsis',
@@ -620,7 +660,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   Text(
                     pelicula.descripcion,
                     style: const TextStyle(
@@ -629,9 +669,9 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                       height: 1.6,
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
-                  
+
                   // Botón principal
                   Container(
                     width: double.infinity,
@@ -639,12 +679,16 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(
-                        color: _canWatch ? neonGreen.withOpacity(0.8) : Colors.red.withOpacity(0.8),
+                        color: _canWatch
+                            ? neonGreen.withOpacity(0.8)
+                            : Colors.red.withOpacity(0.8),
                         width: 2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: _canWatch ? neonGreen.withOpacity(0.3) : Colors.red.withOpacity(0.3),
+                          color: _canWatch
+                              ? neonGreen.withOpacity(0.3)
+                              : Colors.red.withOpacity(0.3),
                           blurRadius: 20,
                           spreadRadius: 0,
                         ),
@@ -683,7 +727,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> with TickerProvid
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 32),
                 ],
               ),

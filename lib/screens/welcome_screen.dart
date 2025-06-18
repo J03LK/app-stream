@@ -203,16 +203,30 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                       margin: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [neonBlue, neonGreen],
+                          colors: [neonBlue, neonPurple], // CAMBIO AQUÍ: cambié neonGreen por neonPurple
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.movie_creation_outlined,
-                        size: 80,
-                        color: Colors.white,
+                      child: ClipOval(
+                        child: Container(
+                          width: 140,
+                          height: 140,
+                          padding: const EdgeInsets.all(8),
+                          child: Image.asset(
+                            'assets/images/fondo.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) {
+                              // Widget de respaldo en caso de que no se encuentre la imagen
+                              return const Icon(
+                                Icons.movie_creation_outlined,
+                                size: 80,
+                                color: Colors.white,
+                              );
+                            },
+                          ),
+                        ),
                       ),
                     ),
                   );
@@ -356,25 +370,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> with TickerProviderStateM
                         
                         const SizedBox(height: 20),
                         
-                        // Eslogan
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                neonGreen.withOpacity(0.2),
-                                neonBlue.withOpacity(0.2),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: neonGreen.withOpacity(0.5), width: 1),
-                          ),
-                          child: _buildNeonText(
-                            '"Donde los estrenos cobran vida"',
-                            fontSize: 16,
-                            color: neonGreen,
-                            fontWeight: FontWeight.w400,
-                          ),
+                        // Eslogan - SIN RECUADRO, SOLO TEXTO NEÓN
+                        _buildNeonText(
+                          '"Donde los estrenos cobran vida"',
+                          fontSize: 16,
+                          color: neonGreen,
+                          fontWeight: FontWeight.w400,
                         ),
                         
                         const SizedBox(height: 60),
